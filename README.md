@@ -33,20 +33,20 @@ sudo bash ufw-quick-setup.sh
 
 ```bash
 # 下载并执行
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/ufw-quick-setup.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/Delahayecarry/ufw_FL/main/ufw-quick-setup.sh | sudo bash
 ```
 
 或者使用 wget：
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/ufw-quick-setup.sh | sudo bash
+wget -qO- https://raw.githubusercontent.com/Delahayecarry/ufw_FL/main/ufw-quick-setup.sh | sudo bash
 ```
 
 ### 方法 3: 下载后执行
 
 ```bash
 # 下载脚本
-wget https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/ufw-quick-setup.sh
+wget https://raw.githubusercontent.com/Delahayecarry/ufw_FL/main/ufw-quick-setup.sh
 
 # 添加执行权限
 chmod +x ufw-quick-setup.sh
