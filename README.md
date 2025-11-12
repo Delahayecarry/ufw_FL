@@ -31,15 +31,25 @@ sudo bash ufw-quick-setup.sh
 
 ### 方法 2: 从 GitHub 一键安装（推荐）
 
+#### 交互式安装（会询问 SSH 端口）
 ```bash
-# 下载并执行
+# 使用 curl
 curl -fsSL https://raw.githubusercontent.com/Delahayecarry/ufw_FL/main/ufw-quick-setup.sh | sudo bash
+
+# 使用 wget
+wget -qO- https://raw.githubusercontent.com/Delahayecarry/ufw_FL/main/ufw-quick-setup.sh | sudo bash
 ```
 
-或者使用 wget：
-
+#### 完全自动化安装（指定 SSH 端口，跳过确认）
 ```bash
-wget -qO- https://raw.githubusercontent.com/Delahayecarry/ufw_FL/main/ufw-quick-setup.sh | sudo bash
+# 如果你的 SSH 端口是 22
+curl -fsSL https://raw.githubusercontent.com/Delahayecarry/ufw_FL/main/ufw-quick-setup.sh | sudo bash -s -- --ssh-port 22 --yes
+
+# 如果你的 SSH 端口是 5522
+curl -fsSL https://raw.githubusercontent.com/Delahayecarry/ufw_FL/main/ufw-quick-setup.sh | sudo bash -s -- --ssh-port 5522 --yes
+
+# 使用 wget
+wget -qO- https://raw.githubusercontent.com/Delahayecarry/ufw_FL/main/ufw-quick-setup.sh | sudo bash -s -- --ssh-port 22 --yes
 ```
 
 ### 方法 3: 下载后执行
@@ -55,11 +65,45 @@ chmod +x ufw-quick-setup.sh
 sudo ./ufw-quick-setup.sh
 ```
 
+## 命令行参数
+
+脚本支持以下命令行参数，特别适用于自动化部署：
+
+```bash
+# 查看帮助
+sudo bash ufw-quick-setup.sh --help
+
+# 指定 SSH 端口
+sudo bash ufw-quick-setup.sh --ssh-port 22
+
+# 跳过确认提示（自动化脚本）
+sudo bash ufw-quick-setup.sh --ssh-port 22 --yes
+
+# 参数说明
+#   --ssh-port PORT    指定 SSH 端口号（1-65535）
+#   --yes, -y          跳过确认提示，直接执行
+#   --help, -h         显示帮助信息
+```
+
+### 自动化部署示例
+
+```bash
+# 完全自动化（适用于脚本、Ansible 等）
+curl -fsSL https://raw.githubusercontent.com/Delahayecarry/ufw_FL/main/ufw-quick-setup.sh | \
+  sudo bash -s -- --ssh-port 22 --yes
+
+# 本地自动化
+sudo bash ufw-quick-setup.sh --ssh-port 5522 -y
+```
+
 ## 注意事项
 
 ⚠️ **重要警告**:
 
-1. **SSH 端口**: 脚本默认开放 5522 端口作为 SSH。如果你的 SSH 使用其他端口，请先修改脚本中的端口号，否则可能失去远程连接！
+1. **SSH 端口**:
+   - 交互式安装：脚本会询问你的 SSH 端口，请务必正确填写
+   - 自动化安装：使用 `--ssh-port` 参数指定正确的 SSH 端口
+   - 如果配置错误，可能失去远程连接！
 
 2. **备份连接**: 在远程服务器上运行前，建议：
    - 确保有其他方式访问服务器（如控制台）

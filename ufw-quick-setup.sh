@@ -17,6 +17,41 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# 解析命令行参数
+SSH_PORT=""
+SKIP_CONFIRM=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --ssh-port)
+            SSH_PORT="$2"
+            shift 2
+            ;;
+        --yes|-y)
+            SKIP_CONFIRM=true
+            shift
+            ;;
+        --help|-h)
+            echo "用法: $0 [选项]"
+            echo ""
+            echo "选项:"
+            echo "  --ssh-port PORT    指定 SSH 端口号（1-65535）"
+            echo "  --yes, -y          跳过确认提示，直接执行"
+            echo "  --help, -h         显示此帮助信息"
+            echo ""
+            echo "示例:"
+            echo "  $0 --ssh-port 22 --yes"
+            echo "  curl -fsSL https://raw.githubusercontent.com/Delahayecarry/ufw_FL/main/ufw-quick-setup.sh | sudo bash -s -- --ssh-port 22 --yes"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}未知参数: $1${NC}"
+            echo "使用 --help 查看帮助"
+            exit 1
+            ;;
+    esac
+done
+
 # 检查 UFW 是否安装
 if ! command -v ufw &> /dev/null; then
     echo -e "${YELLOW}检测到 UFW 未安装，正在安装...${NC}"
@@ -32,21 +67,45 @@ echo -e "${BLUE}╔════════════════════�
 echo -e "${BLUE}║           UFW 防火墙一键配置脚本（风佬机场客户端）                  ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════╝${NC}\n"
 
-# 询问 SSH 端口
-echo -e "${YELLOW}⚠️  重要：请确认你的 SSH 端口${NC}"
-echo -e "如果配置错误，你可能会失去远程连接！\n"
-read -p "你的 SSH 端口是 5522 吗？(y/n): " ssh_confirm
+# 询问 SSH 端口（如果未通过参数指定）
+if [ -z "$SSH_PORT" ]; then
+    echo -e "${YELLOW}⚠️  重要：请确认你的 SSH 端口${NC}"
+    echo -e "如果配置错误，你可能会失去远程连接！\n"
 
-if [ "$ssh_confirm" = "y" ] || [ "$ssh_confirm" = "Y" ]; then
-    SSH_PORT=5522
-    echo -e "${GREEN}✓ 使用 SSH 端口: 5522${NC}\n"
-else
-    read -p "请输入你的 SSH 端口号: " custom_ssh_port
-    if [[ $custom_ssh_port =~ ^[0-9]+$ ]] && [ $custom_ssh_port -ge 1 ] && [ $custom_ssh_port -le 65535 ]; then
-        SSH_PORT=$custom_ssh_port
-        echo -e "${GREEN}✓ 使用 SSH 端口: $SSH_PORT${NC}\n"
+    # 尝试从 /dev/tty 读取（支持管道执行）
+    if [ -t 0 ]; then
+        # 标准输入是终端
+        read -p "你的 SSH 端口是 5522 吗？(y/n): " ssh_confirm
     else
-        echo -e "${RED}错误：无效的端口号！${NC}"
+        # 标准输入不是终端（如 curl | bash），从 /dev/tty 读取
+        read -p "你的 SSH 端口是 5522 吗？(y/n): " ssh_confirm </dev/tty
+    fi
+
+    if [ "$ssh_confirm" = "y" ] || [ "$ssh_confirm" = "Y" ]; then
+        SSH_PORT=5522
+        echo -e "${GREEN}✓ 使用 SSH 端口: 5522${NC}\n"
+    else
+        if [ -t 0 ]; then
+            read -p "请输入你的 SSH 端口号: " custom_ssh_port
+        else
+            read -p "请输入你的 SSH 端口号: " custom_ssh_port </dev/tty
+        fi
+
+        if [[ $custom_ssh_port =~ ^[0-9]+$ ]] && [ $custom_ssh_port -ge 1 ] && [ $custom_ssh_port -le 65535 ]; then
+            SSH_PORT=$custom_ssh_port
+            echo -e "${GREEN}✓ 使用 SSH 端口: $SSH_PORT${NC}\n"
+        else
+            echo -e "${RED}错误：无效的端口号！${NC}"
+            exit 1
+        fi
+    fi
+else
+    # 验证通过参数传入的端口号
+    if [[ $SSH_PORT =~ ^[0-9]+$ ]] && [ $SSH_PORT -ge 1 ] && [ $SSH_PORT -le 65535 ]; then
+        echo -e "${GREEN}✓ 使用 SSH 端口: $SSH_PORT (通过参数指定)${NC}\n"
+    else
+        echo -e "${RED}错误：无效的端口号 $SSH_PORT！${NC}"
+        echo "端口号必须是 1-65535 之间的数字"
         exit 1
     fi
 fi
@@ -62,10 +121,20 @@ echo -e "  ${RED}✗${NC} 入站：拒绝所有其他端口"
 echo -e "  ${GREEN}✓${NC} 出站：允许所有"
 echo ""
 
-read -p "是否继续？这将重置所有现有的 UFW 规则 (y/n): " confirm
-if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-    echo -e "${YELLOW}已取消配置${NC}"
-    exit 0
+# 确认执行（除非使用 --yes 参数）
+if [ "$SKIP_CONFIRM" = false ]; then
+    if [ -t 0 ]; then
+        read -p "是否继续？这将重置所有现有的 UFW 规则 (y/n): " confirm
+    else
+        read -p "是否继续？这将重置所有现有的 UFW 规则 (y/n): " confirm </dev/tty
+    fi
+
+    if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+        echo -e "${YELLOW}已取消配置${NC}"
+        exit 0
+    fi
+else
+    echo -e "${GREEN}跳过确认（使用了 --yes 参数）${NC}\n"
 fi
 
 echo -e "\n${BLUE}=====================================================${NC}"
